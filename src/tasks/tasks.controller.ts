@@ -22,12 +22,15 @@ export class TasksController {
 
   @Get()
   async getasks(@Query() filterDto: GetTasksFilterDto): Promise<Task[]> {
-    const lengthValues = Object.keys(filterDto).length;
-    if (lengthValues) {
-      return await this.taskService.getTasksWithFilters(filterDto);
-    } else {
-      return await this.taskService.getAllTasks();
-    }
+    return await this.taskService.getTasksWithFilters(filterDto);
+    //#region Old
+    // const lengthValues = Object.keys(filterDto).length;
+    // if (lengthValues) {
+    //   return await this.taskService.getTasksWithFilters(filterDto);
+    // } else {
+    //   return await this.taskService.getAllTasks();
+    // }
+    //#endregion
   }
 
   @Post()

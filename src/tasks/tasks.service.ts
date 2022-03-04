@@ -19,26 +19,29 @@ export class TasksService {
   }
 
   async getTasksWithFilters(filterDto: GetTasksFilterDto): Promise<Task[]> {
-    let tasks = await this.getAllTasks();
-    const { search, status } = filterDto;
-
-    if (status) {
-      tasks = (await tasks).filter(
-        (t) => t.status.toLowerCase() === status.toLowerCase(),
-      );
-    }
-    if (search) {
-      tasks = (await tasks).filter((t) => {
-        if (
-          t.title.toLowerCase().includes(search.toLowerCase()) ||
-          t.description.toLowerCase().includes(search.toLowerCase())
-        ) {
-          return true;
-        }
-        return false;
-      });
-    }
-    return tasks;
+    return await this.taskRepository.getTasks(filterDto);
+    //#region Old
+    // let tasks = await this.getAllTasks();
+    // const { search, status } = filterDto;
+    
+    // if (status) {
+    //   tasks = (await tasks).filter(
+    //     (t) => t.status.toLowerCase() === status.toLowerCase(),
+    //     );
+    //   }
+    //   if (search) {
+    //   tasks = (await tasks).filter((t) => {
+    //     if (
+    //       t.title.toLowerCase().includes(search.toLowerCase()) ||
+    //       t.description.toLowerCase().includes(search.toLowerCase())
+    //       ) {
+    //         return true;
+    //       }
+    //       return false;
+    //     });
+    //   }
+    //   return tasks;
+      //#endregion
   }
 
   async createTask(createTaskDto: CreateTaskDto): Promise<Task> {
