@@ -1,19 +1,24 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { ITask, TaskStatus } from './task.model';
-import { v4 as uuid } from 'uuid';
+import { TaskStatus } from './task-status.enum';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { GetTasksFilterDto } from './dto/get-tasks-filter.dto';
 import GenResponse, { StatusCode } from 'src/config/GenResponse';
+import { Task } from './task.entity';
+import { InjectRepository } from '@nestjs/typeorm';
+import { TasksRepository } from './tasks.repository';
 
 @Injectable()
 export class TasksService {
-  private tasks: ITask[] = [];
+  constructor(
+    @InjectRepository(TasksRepository)
+    private readonly taskRepository: TasksRepository,
+  ) {}
 
-  async getAllTasks(): Promise<ITask[]> {
-    return this.tasks;
+  async getAllTasks(): Promise<Task[]> {
+    return this.taskRepository.find();
   }
 
-  async getTasksWithFilters(filterDto: GetTasksFilterDto): Promise<ITask[]> {
+  async getTasksWithFilters(filterDto: GetTasksFilterDto): Promise<Task[]> {
     let tasks = await this.getAllTasks();
     const { search, status } = filterDto;
 
@@ -36,34 +41,60 @@ export class TasksService {
     return tasks;
   }
 
-  async createTask(createTaskDto: CreateTaskDto): Promise<ITask> {
-    const { title, description } = createTaskDto;
-    const task: ITask = {
-      id: uuid(),
-      title,
-      description,
-      status: TaskStatus.OPEN,
-    };
-    this.tasks.push(task);
+  async createTask(createTaskDto: CreateTaskDto): Promise<Task> {
+    const task: Task = await this.taskRepository.createTask(createTaskDto);
     return task;
   }
 
-  async getTaskById(id: string): Promise<GenResponse<ITask>> {
-    const task =this.tasks.find((p) => p.id === id);
-    if(!task){
-      throw new NotFoundException(GenResponse.Result<null>(null,false,StatusCode.NotFound,`Task with id ${id} not found.`));
+  async getTaskById(id: string): Promise<GenResponse<Task>> {
+    let task: Task;
+    try {
+      task = await this.taskRepository.findOne(id);
+      if (!task) {
+        throw new NotFoundException(
+          GenResponse.Result<null>(
+            null,
+            false,
+            StatusCode.NotFound,
+            `Task with id ${id} not found.`,
+          ),
+        );
+      }
+    } catch (error) {
+      throw new NotFoundException(
+        GenResponse.Result<null>(
+          null,
+          false,
+          StatusCode.NotFound,
+          `Task with id ${id} not found.`,
+        ),
+      );
     }
-    return GenResponse.Result<ITask>(task,true,StatusCode.OK)
+
+    return GenResponse.Result<Task>(task, true, StatusCode.OK);
   }
 
-  async deletTaskById(id: string): Promise<void> {
-    const task= await this.getTaskById(id);
-    this.tasks = this.tasks.filter((t) => t.id !== id);
+  async deleteTaskById(id: string): Promise<void> {
+    const task = await this.taskRepository.delete(id);
+    if (task.affected === 0) {
+      throw new NotFoundException(
+        GenResponse.Result<null>(
+          null,
+          false,
+          StatusCode.NotFound,
+          `Task with id ${id} not found.`,
+        ),
+      );
+    }
   }
 
-  async updateTaskById(id: string, status: TaskStatus): Promise<GenResponse<ITask>> {
-    const task= await this.getTaskById(id);
-    this.tasks.find((t) => t.id === id).status = status;
+  async updateTaskById(
+    id: string,
+    status: TaskStatus,
+  ): Promise<GenResponse<Task>> {
+    const task = await this.getTaskById(id);
+    task.Data.status = status;
+    await this.taskRepository.save(task.Data);
     return task;
   }
 }

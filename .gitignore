@@ -14,7 +14,7 @@ lerna-debug.log*
 # User defined
 .env
 .env.*.*
-
+/src/config/*.config.ts
 
 # OS
 .DS_Store

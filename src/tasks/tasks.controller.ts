@@ -12,7 +12,8 @@ import GenResponse from 'src/config/GenResponse';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { GetTasksFilterDto } from './dto/get-tasks-filter.dto';
 import { UpdateStackStatus } from './dto/update-task-status.dto';
-import { ITask, TaskStatus } from './task.model';
+import {TaskStatus } from './task-status.enum';
+import { Task } from './task.entity';
 import { TasksService } from './tasks.service';
 
 @Controller('tasks')
@@ -20,7 +21,7 @@ export class TasksController {
   constructor(private readonly taskService: TasksService) {}
 
   @Get()
-  async getasks(@Query() filterDto: GetTasksFilterDto): Promise<ITask[]> {
+  async getasks(@Query() filterDto: GetTasksFilterDto): Promise<Task[]> {
     const lengthValues = Object.keys(filterDto).length;
     if (lengthValues) {
       return await this.taskService.getTasksWithFilters(filterDto);
@@ -30,19 +31,19 @@ export class TasksController {
   }
 
   @Post()
-  async createTask(@Body() createTaskDto: CreateTaskDto): Promise<ITask> {
+  async createTask(@Body() createTaskDto: CreateTaskDto): Promise<Task> {
     return await this.taskService.createTask(createTaskDto);
   }
 
   @Get('/:id')
-  async getTaskById(@Param('id') id: string): Promise<GenResponse<ITask>> {
+  async getTaskById(@Param('id') id: string): Promise<GenResponse<Task>> {
     const objResult = await this.taskService.getTaskById(id);
     return objResult;
   }
 
   @Delete('/:id')
   async deleteTaskById(@Param('id') id: string): Promise<string> {
-    await this.taskService.deletTaskById(id);
+    await this.taskService.deleteTaskById(id);
     return id;
   }
 
@@ -50,7 +51,7 @@ export class TasksController {
   async updateTaskById(
     @Param('id') id: string,
     @Body() updateTaskStatusDto: UpdateStackStatus,
-  ):Promise<GenResponse<ITask>> {
+  ):Promise<GenResponse<Task>> {
     const {status} = updateTaskStatusDto;
     return await this.taskService.updateTaskById(id, status);
   }
