@@ -2,10 +2,11 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { TaskStatus } from './task-status.enum';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { GetTasksFilterDto } from './dto/get-tasks-filter.dto';
-import GenResponse, { StatusCode } from 'src/config/GenResponse';
+import GenResponseDto, { StatusCode } from 'src/config/GenResponse.dto';
 import { Task } from './task.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { TasksRepository } from './tasks.repository';
+import { User } from 'src/auth/user.entity';
 
 @Injectable()
 export class TasksService {
@@ -18,8 +19,8 @@ export class TasksService {
     return this.taskRepository.find();
   }
 
-  async getTasksWithFilters(filterDto: GetTasksFilterDto): Promise<Task[]> {
-    return await this.taskRepository.getTasks(filterDto);
+  async getTasksWithFilters(filterDto: GetTasksFilterDto,user: User): Promise<Task[]> {
+    return await this.taskRepository.getTasks(filterDto,user);
     //#region Old
     // let tasks = await this.getAllTasks();
     // const { search, status } = filterDto;
@@ -44,18 +45,18 @@ export class TasksService {
       //#endregion
   }
 
-  async createTask(createTaskDto: CreateTaskDto): Promise<Task> {
-    const task: Task = await this.taskRepository.createTask(createTaskDto);
+  async createTask(createTaskDto: CreateTaskDto, user: User): Promise<Task> {
+    const task: Task = await this.taskRepository.createTask(createTaskDto, user);
     return task;
   }
 
-  async getTaskById(id: string): Promise<GenResponse<Task>> {
+  async getTaskById(id: string,user: User): Promise<GenResponseDto<Task>> {
     let task: Task;
     try {
-      task = await this.taskRepository.findOne(id);
+      task = await this.taskRepository.findOne({where:{id, user}});
       if (!task) {
         throw new NotFoundException(
-          GenResponse.Result<null>(
+          GenResponseDto.Result<null>(
             null,
             false,
             StatusCode.NotFound,
@@ -65,7 +66,7 @@ export class TasksService {
       }
     } catch (error) {
       throw new NotFoundException(
-        GenResponse.Result<null>(
+        GenResponseDto.Result<null>(
           null,
           false,
           StatusCode.NotFound,
@@ -74,14 +75,14 @@ export class TasksService {
       );
     }
 
-    return GenResponse.Result<Task>(task, true, StatusCode.OK);
+    return GenResponseDto.Result<Task>(task, true, StatusCode.OK);
   }
 
-  async deleteTaskById(id: string): Promise<void> {
-    const task = await this.taskRepository.delete(id);
+  async deleteTaskById(id: string,user: User): Promise<void> {
+    const task = await this.taskRepository.delete({id,user});
     if (task.affected === 0) {
       throw new NotFoundException(
-        GenResponse.Result<null>(
+        GenResponseDto.Result<null>(
           null,
           false,
           StatusCode.NotFound,
@@ -94,8 +95,9 @@ export class TasksService {
   async updateTaskById(
     id: string,
     status: TaskStatus,
-  ): Promise<GenResponse<Task>> {
-    const task = await this.getTaskById(id);
+    user: User
+  ): Promise<GenResponseDto<Task>> {
+    const task = await this.getTaskById(id,user);
     task.Data.status = status;
     await this.taskRepository.save(task.Data);
     return task;
